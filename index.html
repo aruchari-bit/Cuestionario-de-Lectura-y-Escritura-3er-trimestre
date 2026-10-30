@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación de Lectura y Escritura - 3er Trimestre</title>
+    <!-- Tailwind CSS desde CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Fuente Inter de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Glassmorphism styling */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Continuous Pulse Animation */
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .pulse-btn {
+            animation: pulse-subtle 3s infinite ease-in-out;
+        }
+
+        /* Option Hover & Active styles */
+        .option-btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .option-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Fade in animation for cards */
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Canvas Overlay for Confetti */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4 sm:p-6 md:p-8">
+
+    <!-- Canvas para el efecto de confeti final -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Envoltorio Principal -->
+    <main class="w-full max-w-3xl glass-card rounded-3xl overflow-hidden p-6 sm:p-10 relative z-10 transition-all duration-300">
+        
+        <!-- PANTALLA INICIAL DE BIENVENIDA -->
+        <section id="welcome-screen" class="text-center py-6 fade-in">
+            <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full mb-6 shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-book-open-reader text-4xl"></i>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 tracking-tight mb-3">
+                Cuestionario de Evaluación
+            </h1>
+            <p class="text-lg font-semibold text-indigo-600 mb-2">
+                Lectura y Escritura • Tercer Trimestre
+            </p>
+            <p class="text-gray-600 max-w-md mx-auto mb-8 text-sm sm:text-base leading-relaxed">
+                ¡Demuestra todo lo que has aprendido en la etapa final del ciclo lectivo! Responde las preguntas y recibe retroalimentación inmediata.
+            </p>
+            <button onclick="quizApp.startQuiz()" class="pulse-btn w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg rounded-2xl shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <i class="fa-solid fa-play mr-2"></i> Comenzar Cuestionario
+            </button>
+        </section>
+
+        <!-- PANTALLA DEL CUESTIONARIO -->
+        <section id="quiz-screen" class="hidden fade-in">
+            <!-- Encabezado de Progreso -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span id="question-tracker" class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                        Pregunta 1 de 5
+                    </span>
+                    <span id="score-tracker" class="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                        Puntos: 0
+                    </span>
+                </div>
+                <!-- Barra de Progreso Visual -->
+                <div class="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" style="width: 20%"></div>
+                </div>
+            </div>
+
+            <!-- Contenedor de la Pregunta -->
+            <div class="mb-6">
+                <h2 id="question-title" class="text-xl sm:text-2xl font-bold text-gray-800 leading-snug">
+                    Cargando pregunta...
+                </h2>
+            </div>
+
+            <!-- Opciones de Respuesta -->
+            <div id="options-container" class="space-y-3 mb-6">
+                <!-- Se generan dinámicamente con JS -->
+            </div>
+
+            <!-- Cuadro de Retroalimentación -->
+            <div id="feedback-box" class="hidden rounded-2xl p-4 mb-6 transition-all duration-300">
+                <div class="flex items-start">
+                    <div id="feedback-icon" class="text-2xl mr-3 mt-0.5"></div>
+                    <div>
+                        <h4 id="feedback-title" class="font-bold text-base mb-1"></h4>
+                        <p id="feedback-text" class="text-sm leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón Siguiente -->
+            <div class="flex justify-end">
+                <button id="next-btn" onclick="quizApp.nextQuestion()" class="hidden px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition duration-200 items-center">
+                    <span>Siguiente</span>
+                    <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- PANTALLA FINAL DE RESULTADOS -->
+        <section id="result-screen" class="hidden text-center py-6 fade-in">
+            <div id="badge-icon-container" class="inline-flex items-center justify-center w-24 h-24 bg-yellow-100 text-yellow-500 rounded-full mb-4 shadow-inner">
+                <i id="badge-icon" class="fa-solid fa-trophy text-5xl"></i>
+            </div>
+            
+            <h2 id="result-title" class="text-3xl font-extrabold text-gray-800 mb-2">
+                ¡Felicitaciones!
+            </h2>
+            <p id="result-subtitle" class="text-gray-600 mb-6 font-medium">
+                Has completado la evaluación del 3er trimestre
+            </p>
+
+            <!-- Tarjeta de Puntuación -->
+            <div class="bg-gradient-to-br from-gray-50 to-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-6 max-w-sm mx-auto shadow-sm">
+                <span class="text-xs uppercase tracking-wider font-bold text-gray-500">Puntaje Final</span>
+                <div class="text-5xl font-black text-indigo-600 my-2">
+                    <span id="final-score">0</span> / <span id="max-score">5</span>
+                </div>
+                <div id="performance-badge" class="inline-block mt-1 px-4 py-1.5 text-xs font-bold rounded-full uppercase tracking-wider">
+                    Insignia de Desempeño
+                </div>
+            </div>
+
+            <p id="result-message" class="text-gray-600 mb-8 max-w-md mx-auto text-sm sm:text-base leading-relaxed">
+                Mensaje personalizado aquí.
+            </p>
+
+            <!-- Botón Reiniciar -->
+            <button onclick="quizApp.restartQuiz()" class="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg transition duration-200">
+                <i class="fa-solid fa-rotate-right mr-2"></i> Intentar de nuevo
+            </button>
+        </section>
+
+    </main>
+
+    <!-- LÓGICA JAVASCRIPT -->
+    <script>
+        /**
+         * Banco de Preguntas sobre Evaluación de Lectura y Escritura (3er Trimestre)
+         */
+        const quizQuestions = [
+            {
+                question: "¿Cuál es el objetivo principal de evaluar la fluidez lectora al finalizar el tercer trimestre?",
+                options: [
+                    "Verificar únicamente la velocidad con la que el estudiante lee un texto.",
+                    "Valorar la precisión, el ritmo y la entonación para asegurar la comprensión del texto.",
+                    "Comprobar si el alumno ha memorizado la lista de palabras del trimestre.",
+                    "Clasificar a los alumnos por orden de rapidez al leer en voz alta."
+                ],
+                correct: 1,
+                explanation: "La fluidez no se trata solo de velocidad; abarca la precisión, el ritmo adecuado y la prosodia (entonación), los cuales son puentes fundamentales hacia la comprensión lectora."
+            },
+            {
+                question: "En la evaluación de la producción escrita al cierre del ciclo, ¿qué aspecto evidencia un mayor nivel de consolidación sintáctica?",
+                options: [
+                    "El uso exclusivo de oraciones simples y cortas.",
+                    "La ausencia total de marcas de puntuación.",
+                    "La coherencia, cohesión y el empleo adecuado de conectores textuales.",
+                    "Escribir textos largos independientemente de si las ideas tienen relación entre sí."
+                ],
+                correct: 2,
+                explanation: "Al finalizar el tercer trimestre, se espera que el estudiante redacte párrafos estructurados utilizando conectores (por ejemplo: 'además', 'por lo tanto') que le otorguen coherencia y cohesión al escrito."
+            },
+            {
+                question: "Al evaluar la comprensión inferencial en la lectura, ¿qué se le solicita al estudiante?",
+                options: [
+                    "Localizar un dato explícito expresado de forma directa en el texto.",
+                    "Deducir información implícita a partir de pistas del texto y sus conocimientos previos.",
+                    "Copiar textualmente las respuestas que aparecen en el escrito.",
+                    "Contar cuántas palabras componen cada párrafo del texto."
+                ],
+                correct: 1,
+                explanation: "El nivel inferencial requiere 'leer entre líneas': el lector saca conclusiones y comprende ideas que el autor no expresó de forma explícita pero sí sugirió."
+            },
+            {
+                question: "Un indicador clave en la revisión y corrección de la escritura en el 3er trimestre es:",
+                options: [
+                    "La capacidad del propio estudiante para reescribir y autocorregir sus textos identificando errores.",
+                    "Depender totalmente del docente para detectar cualquier falta ortográfica o de sentido.",
+                    "Entregar el borrador inicial sin realizar ningún tipo de revisión previa.",
+                    "Escribir únicamente con tipografía imprenta mayúscula."
+                ],
+                correct: 0,
+                explanation: "El desarrollo de la metacognición implica que el alumno adquiera autonomía para revisar sus producciones escritas, identificar inconsistencias y ajustar la ortografía e idea central."
+            },
+            {
+                question: "¿Qué instrumento es más recomendable para una evaluación formativa e integral de la escritura al final del período?",
+                options: [
+                    "Una prueba rápida de verdadero/falso sobre reglas ortográficas.",
+                    "Una rúbrica analítica que valore propósito, estructura, vocabulario y ortografía.",
+                    "Un examen oral de preguntas de respuesta única.",
+                    "Medir el número de palabras que el estudiante puede escribir en un minuto."
+                ],
+                correct: 1,
+                explanation: "Las rúbricas analíticas permiten evaluar de forma holística las distintas dimensiones de la escritura (propósito comunicativo, organización, vocabulario y norma ortográfica) ofreciendo criterios claros de logro."
+            }
+        ];
+
+        /**
+         * Controlador Principal de la Aplicación
+         */
+        class QuizApp {
+            constructor(questions) {
+                this.questions = questions;
+                this.currentIndex = 0;
+                this.score = 0;
+                this.selectedOption = null;
+
+                // Cache de Elementos DOM
+                this.welcomeScreen = document.getElementById('welcome-screen');
+                this.quizScreen = document.getElementById('quiz-screen');
+                this.resultScreen = document.getElementById('result-screen');
+                
+                this.questionTracker = document.getElementById('question-tracker');
+                this.scoreTracker = document.getElementById('score-tracker');
+                this.progressBar = document.getElementById('progress-bar');
+                this.questionTitle = document.getElementById('question-title');
+                this.optionsContainer = document.getElementById('options-container');
+                
+                this.feedbackBox = document.getElementById('feedback-box');
+                this.feedbackIcon = document.getElementById('feedback-icon');
+                this.feedbackTitle = document.getElementById('feedback-title');
+                this.feedbackText = document.getElementById('feedback-text');
+                this.nextBtn = document.getElementById('next-btn');
+
+                this.finalScoreEl = document.getElementById('final-score');
+                this.maxScoreEl = document.getElementById('max-score');
+                this.resultTitleEl = document.getElementById('result-title');
+                this.resultMessageEl = document.getElementById('result-message');
+                this.badgeIcon = document.getElementById('badge-icon');
+                this.badgeIconContainer = document.getElementById('badge-icon-container');
+                this.performanceBadge = document.getElementById('performance-badge');
+            }
+
+            startQuiz() {
+                this.currentIndex = 0;
+                this.score = 0;
+                this.welcomeScreen.classList.add('hidden');
+                this.resultScreen.classList.add('hidden');
+                this.quizScreen.classList.remove('hidden');
+                this.loadQuestion();
+            }
+
+            loadQuestion() {
+                this.selectedOption = null;
+                const currentQ = this.questions[this.currentIndex];
+
+                // Actualizar contadores y progreso
+                this.questionTracker.innerText = `Pregunta ${this.currentIndex + 1} de ${this.questions.length}`;
+                this.scoreTracker.innerText = `Puntos: ${this.score}`;
+                const progressPercent = ((this.currentIndex + 1) / this.questions.length) * 100;
+                this.progressBar.style.width = `${progressPercent}%`;
+
+                // Cargar título
+                this.questionTitle.innerText = currentQ.question;
+
+                // Limpiar retroalimentación y botón siguiente
+                this.feedbackBox.classList.add('hidden');
+                this.nextBtn.classList.add('hidden');
+
+                // Renderizar opciones
+                this.optionsContainer.innerHTML = '';
+                currentQ.options.forEach((optText, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = `option-btn w-full text-left p-4 rounded-xl border-2 border-gray-200 bg-white hover:border-indigo-400 text-gray-700 font-medium text-sm sm:text-base flex items-center justify-between group`;
+                    btn.onclick = () => this.selectOption(idx);
+                    
+                    btn.innerHTML = `
+                        <div class="flex items-center">
+                            <span class="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 font-bold flex items-center justify-center mr-3 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                                ${String.fromCharCode(65 + idx)}
+                            </span>
+                            <span>${optText}</span>
+                        </div>
+                        <i class="fa-regular fa-circle text-gray-300 text-xl group-hover:text-indigo-400"></i>
+                    `;
+                    this.optionsContainer.appendChild(btn);
+                });
+            }
+
+            selectOption(selectedIndex) {
+                if (this.selectedOption !== null) return; // Impedir múltiples selecciones
+                
+                this.selectedOption = selectedIndex;
+                const currentQ = this.questions[this.currentIndex];
+                const isCorrect = selectedIndex === currentQ.correct;
+
+                if (isCorrect) {
+                    this.score++;
+                    this.scoreTracker.innerText = `Puntos: ${this.score}`;
+                }
+
+                // Deshabilitar y dar formato a los botones de opciones
+                const buttons = this.optionsContainer.querySelectorAll('button');
+                buttons.forEach((btn, idx) => {
+                    btn.disabled = true;
+                    btn.classList.remove('hover:border-indigo-400');
+
+                    if (idx === currentQ.correct) {
+                        btn.className = 'option-btn w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold text-sm sm:text-base flex items-center justify-between';
+                        btn.querySelector('i').className = 'fa-solid fa-circle-check text-emerald-600 text-xl';
+                    } else if (idx === selectedIndex && !isCorrect) {
+                        btn.className = 'option-btn w-full text-left p-4 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-900 font-semibold text-sm sm:text-base flex items-center justify-between';
+                        btn.querySelector('i').className = 'fa-solid fa-circle-xmark text-rose-600 text-xl';
+                    } else {
+                        btn.classList.add('opacity-50');
+                    }
+                });
+
+                // Mostrar retroalimentación
+                this.showFeedback(isCorrect, currentQ.explanation);
+                
+                // Mostrar botón "Siguiente"
+                this.nextBtn.classList.remove('hidden');
+                this.nextBtn.classList.add('flex');
+            }
+
+            showFeedback(isCorrect, explanation) {
+                this.feedbackBox.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-800', 'bg-rose-50', 'border-rose-200', 'text-rose-800');
+                
+                if (isCorrect) {
+                    this.feedbackBox.classList.add('bg-emerald-50', 'border', 'border-emerald-200', 'text-emerald-900');
+                    this.feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600"></i>';
+                    this.feedbackTitle.innerText = '¡Correcto!';
+                } else {
+                    this.feedbackBox.classList.add('bg-rose-50', 'border', 'border-rose-200', 'text-rose-900');
+                    this.feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-600"></i>';
+                    this.feedbackTitle.innerText = 'Respuesta incorrecta';
+                }
+
+                this.feedbackText.innerText = explanation;
+            }
+
+            nextQuestion() {
+                this.currentIndex++;
+                if (this.currentIndex < this.questions.length) {
+                    this.loadQuestion();
+                } else {
+                    this.showResults();
+                }
+            }
+
+            showResults() {
+                this.quizScreen.classList.add('hidden');
+                this.resultScreen.classList.remove('hidden');
+
+                this.finalScoreEl.innerText = this.score;
+                this.maxScoreEl.innerText = this.questions.length;
+
+                const percentage = (this.score / this.questions.length) * 100;
+
+                // Asignación de Insignias y Mensajes según desempeño
+                if (percentage === 100) {
+                    this.resultTitleEl.innerText = '¡Excelencia Académica!';
+                    this.resultMessageEl.innerText = 'Demuestras un dominio completo en las habilidades de lectura y escritura esperadas para el cierre del ciclo escolar.';
+                    this.badgeIcon.className = 'fa-solid fa-crown text-5xl text-yellow-500';
+                    this.badgeIconContainer.className = 'inline-flex items-center justify-center w-24 h-24 bg-yellow-100 rounded-full mb-4 shadow-lg';
+                    this.performanceBadge.innerText = 'Nivel: Avanzado / Sobresaliente';
+                    this.performanceBadge.className = 'inline-block mt-1 px-4 py-1.5 text-xs font-bold rounded-full uppercase tracking-wider bg-yellow-100 text-yellow-800';
+                    
+                    // Lanzar confeti continuo para puntaje perfecto
+                    startConfetti();
+                } else if (percentage >= 60) {
+                    this.resultTitleEl.innerText = '¡Buen Trabajo!';
+                    this.resultMessageEl.innerText = 'Has adquirido las competencias necesarias en lectoescritura. Sigue practicando para afianzar tu comprensión sintáctica y lectora.';
+                    this.badgeIcon.className = 'fa-solid fa-medal text-5xl text-indigo-500';
+                    this.badgeIconContainer.className = 'inline-flex items-center justify-center w-24 h-24 bg-indigo-100 rounded-full mb-4 shadow-lg';
+                    this.performanceBadge.innerText = 'Nivel: Competente / Satisfactorio';
+                    this.performanceBadge.className = 'inline-block mt-1 px-4 py-1.5 text-xs font-bold rounded-full uppercase tracking-wider bg-indigo-100 text-indigo-800';
+                    
+                    // Confeti breve
+                    startConfetti(2500);
+                } else {
+                    this.resultTitleEl.innerText = '¡A seguir practicando!';
+                    this.resultMessageEl.innerText = 'Es una buena oportunidad para repasar los conceptos de comprensión inferencial, coherencia textual y revisión de escritos.';
+                    this.badgeIcon.className = 'fa-solid fa-book-open text-5xl text-blue-500';
+                    this.badgeIconContainer.className = 'inline-flex items-center justify-center w-24 h-24 bg-blue-100 rounded-full mb-4 shadow-lg';
+                    this.performanceBadge.innerText = 'Nivel: En Proceso';
+                    this.performanceBadge.className = 'inline-block mt-1 px-4 py-1.5 text-xs font-bold rounded-full uppercase tracking-wider bg-blue-100 text-blue-800';
+                }
+            }
+
+            restartQuiz() {
+                stopConfetti();
+                this.startQuiz();
+            }
+        }
+
+        /**
+         * Sistema de Animación de Confeti Integrado con HTML5 Canvas
+         */
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationFrameId = null;
+        let confettiTimeout = null;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class ConfettiParticle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height - canvas.height;
+                this.size = Math.random() * 8 + 4;
+                this.color = ['#f43f5e', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'][Math.floor(Math.random() * 6)];
+                this.speedY = Math.random() * 3 + 2;
+                this.speedX = Math.random() * 2 - 1;
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = Math.random() * 10 - 5;
+            }
+
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.rotation += this.rotationSpeed;
+
+                if (this.y > canvas.height) {
+                    this.y = -10;
+                    this.x = Math.random() * canvas.width;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate((this.rotation * Math.PI) / 180);
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            animationFrameId = requestAnimationFrame(animateConfetti);
+        }
+
+        function startConfetti(duration = null) {
+            stopConfetti();
+            particles = Array.from({ length: 80 }, () => new ConfettiParticle());
+            animateConfetti();
+
+            if (duration) {
+                confettiTimeout = setTimeout(() => {
+                    stopConfetti();
+                }, duration);
+            }
+        }
+
+        function stopConfetti() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (confettiTimeout) clearTimeout(confettiTimeout);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles = [];
+        }
+
+        // Inicializar Aplicación al cargar
+        let quizApp;
+        window.addEventListener('DOMContentLoaded', () => {
+            quizApp = new QuizApp(quizQuestions);
+        });
+    </script>
+</body>
+</html>
